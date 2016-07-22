@@ -279,7 +279,7 @@
 	timer {
 		compatible = "arm,armv8-timer";
 		interrupt-parent = <0x1>;
-		interrupts = <0x1 0xd 0xf01 0x1 0xe 0xf01 0x1 0xb 0xf01 0x1 0xa 0xf01>;
+		interrupts = <0x1 0xd 0xf04 0x1 0xe 0xf04 0x1 0xb 0xf04 0x1 0xa 0xf04>;
 	};
 
 	amba_apu {
@@ -1579,6 +1579,13 @@
 			compatible = "mmio-sram";
 			reg = <0x0 0xfffc0000 0x0 0x40000>;
 		};
+
+		shared_mem {
+			#stream-id-cells = <0x1>;
+			compatible = "uio-dev";
+			reg = <0x0 0x7ffff000 0x0 0x1000>; 
+		};
+
 	};
 
 	aliases {
@@ -1594,7 +1601,7 @@
 		#address-cells = <0x2>;
 		#size-cells = <0x1>;
 		xen,xen-bootargs = "console=dtuart dtuart=serial0 dom0_mem=512M bootscrub=0 dom0_vcpus_pin maxcpus=3 timer_slop=0";
-		xen,dom0-bootargs = "console=hvc0 earlycon=xen earlyprintk=xen root=/dev/mmcblk0p1 rootdelay=1 devtmpfs.mount=1 dom0_max_vcpus=1 maxcpus=1";
+		xen,dom0-bootargs = "console=hvc0 earlycon=xen earlyprintk=xen root=/dev/mmcblk0p1 rootdelay=1 devtmpfs.mount=1 dom0_max_vcpus=1 maxcpus=1 uio_pdrv_genirq.of_id=uio-dev";
 
 		dom0 {
 			compatible = "xen,linux-zimage", "xen,multiboot-module";
@@ -1604,6 +1611,6 @@
 
 	memory {
 		device_type = "memory";
-		reg = <0x0 0x0 0x0 0x80000000 0x8 0x0 0x0 0x80000000>;
+		reg = <0x0 0x0 0x0 0x7ffff000 0x8 0x0 0x0 0x80000000>;
 	};
 };
