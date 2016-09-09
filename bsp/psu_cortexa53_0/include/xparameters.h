@@ -1,6 +1,3 @@
-#define QEMU 1
-#define GUEST 1
-
 /* Definition for CPU ID */
 #define XPAR_CPU_ID 0
 
@@ -20,14 +17,8 @@
 
 #include "xparameters_ps.h"
 
-#if GUEST
-#define STDIN_BASEADDRESS XPAR_PSU_UART_1_BASEADDR
-#define STDOUT_BASEADDRESS XPAR_PSU_UART_1_BASEADDR
-#else
-#define STDIN_BASEADDRESS XPAR_PSU_UART_0_BASEADDR
-#define STDOUT_BASEADDRESS XPAR_PSU_UART_0_BASEADDR
-#endif
-
+#define STDIN_BASEADDRESS 0xFF000000
+#define STDOUT_BASEADDRESS 0xFF000000
 
 /******************************************************************/
 
@@ -261,6 +252,26 @@
 
 /******************************************************************/
 
+/* Definitions for driver DDRCPSU */
+#define XPAR_XDDRCPSU_NUM_INSTANCES 1
+
+/* Definitions for peripheral PSU_DDRC_0 */
+#define XPAR_PSU_DDRC_0_DEVICE_ID 0
+#define XPAR_PSU_DDRC_0_BASEADDR 0xFD070000
+#define XPAR_PSU_DDRC_0_HIGHADDR 0xFD070FFF
+#define XPAR_PSU_DDRC_0_HAS_ECC 0
+
+
+/******************************************************************/
+
+/* Canonical definitions for peripheral PSU_DDRC_0 */
+#define XPAR_DDRCPSU_0_DEVICE_ID XPAR_PSU_DDRC_0_DEVICE_ID
+#define XPAR_DDRCPSU_0_BASEADDR 0xFD070000
+#define XPAR_DDRCPSU_0_HIGHADDR 0xFD070FFF
+
+
+/******************************************************************/
+
 /* Definitions for driver EMACPS */
 #define XPAR_XEMACPS_NUM_INSTANCES 1
 
@@ -269,12 +280,12 @@
 #define XPAR_PSU_ETHERNET_3_BASEADDR 0xFF0E0000
 #define XPAR_PSU_ETHERNET_3_HIGHADDR 0xFF0EFFFF
 #define XPAR_PSU_ETHERNET_3_ENET_CLK_FREQ_HZ 124998749
-#define XPAR_PSU_ETHERNET_3_ENET_SLCR_1000MBPS_DIV0 50000000
-#define XPAR_PSU_ETHERNET_3_ENET_SLCR_1000MBPS_DIV1 50000000
-#define XPAR_PSU_ETHERNET_3_ENET_SLCR_100MBPS_DIV0 50000000
-#define XPAR_PSU_ETHERNET_3_ENET_SLCR_100MBPS_DIV1 50000000
-#define XPAR_PSU_ETHERNET_3_ENET_SLCR_10MBPS_DIV0 50000000
-#define XPAR_PSU_ETHERNET_3_ENET_SLCR_10MBPS_DIV1 50000000
+#define XPAR_PSU_ETHERNET_3_ENET_SLCR_1000MBPS_DIV0 12
+#define XPAR_PSU_ETHERNET_3_ENET_SLCR_1000MBPS_DIV1 1
+#define XPAR_PSU_ETHERNET_3_ENET_SLCR_100MBPS_DIV0 60
+#define XPAR_PSU_ETHERNET_3_ENET_SLCR_100MBPS_DIV1 1
+#define XPAR_PSU_ETHERNET_3_ENET_SLCR_10MBPS_DIV0 60
+#define XPAR_PSU_ETHERNET_3_ENET_SLCR_10MBPS_DIV1 10
 
 
 /******************************************************************/
@@ -284,12 +295,12 @@
 #define XPAR_XEMACPS_0_BASEADDR 0xFF0E0000
 #define XPAR_XEMACPS_0_HIGHADDR 0xFF0EFFFF
 #define XPAR_XEMACPS_0_ENET_CLK_FREQ_HZ 124998749
-#define XPAR_XEMACPS_0_ENET_SLCR_1000Mbps_DIV0 50000000
-#define XPAR_XEMACPS_0_ENET_SLCR_1000Mbps_DIV1 50000000
-#define XPAR_XEMACPS_0_ENET_SLCR_100Mbps_DIV0 50000000
-#define XPAR_XEMACPS_0_ENET_SLCR_100Mbps_DIV1 50000000
-#define XPAR_XEMACPS_0_ENET_SLCR_10Mbps_DIV0 50000000
-#define XPAR_XEMACPS_0_ENET_SLCR_10Mbps_DIV1 50000000
+#define XPAR_XEMACPS_0_ENET_SLCR_1000Mbps_DIV0 12
+#define XPAR_XEMACPS_0_ENET_SLCR_1000Mbps_DIV1 1
+#define XPAR_XEMACPS_0_ENET_SLCR_100Mbps_DIV0 60
+#define XPAR_XEMACPS_0_ENET_SLCR_100Mbps_DIV1 1
+#define XPAR_XEMACPS_0_ENET_SLCR_10Mbps_DIV0 60
+#define XPAR_XEMACPS_0_ENET_SLCR_10Mbps_DIV1 10
 
 
 /******************************************************************/
@@ -408,11 +419,6 @@
 /* Definitions for peripheral PSU_DDR_XMPU5_CFG */
 #define XPAR_PSU_DDR_XMPU5_CFG_S_AXI_BASEADDR 0xFD050000
 #define XPAR_PSU_DDR_XMPU5_CFG_S_AXI_HIGHADDR 0xFD05FFFF
-
-
-/* Definitions for peripheral PSU_DDRC_0 */
-#define XPAR_PSU_DDRC_0_S_AXI_BASEADDR 0xFD070000
-#define XPAR_PSU_DDRC_0_S_AXI_HIGHADDR 0xFD070FFF
 
 
 /* Definitions for peripheral PSU_DP */
@@ -782,30 +788,19 @@
 
 /* Definitions for peripheral PSU_ACPU_GIC */
 #define XPAR_PSU_ACPU_GIC_DEVICE_ID 0
-
-#if GUEST
-#define XPAR_PSU_ACPU_GIC_BASEADDR      0x03002000                 	// Xen maps the GICC interface to 0x03002000 from 0xF9060000
-#define XPAR_PSU_ACPU_GIC_HIGHADDR      0x03002fff
-#define XPAR_PSU_ACPU_GIC_DIST_BASEADDR 0x03001000                  // Xen maps the GICD interface to 0x03001000 from 0xF9010000
-#else
 #define XPAR_PSU_ACPU_GIC_BASEADDR 0xF9020000
 #define XPAR_PSU_ACPU_GIC_HIGHADDR 0xF9020FFF
 #define XPAR_PSU_ACPU_GIC_DIST_BASEADDR 0xF9010000
-#endif
+
 
 /******************************************************************/
 
 /* Canonical definitions for peripheral PSU_ACPU_GIC */
 #define XPAR_SCUGIC_0_DEVICE_ID 0
-#if GUEST
-#define XPAR_SCUGIC_0_CPU_BASEADDR  0x03002000
-#define XPAR_SCUGIC_0_CPU_HIGHADDR  0x03002fff
-#define XPAR_SCUGIC_0_DIST_BASEADDR 0x03001000
-#else
 #define XPAR_SCUGIC_0_CPU_BASEADDR 0xF9020000
 #define XPAR_SCUGIC_0_CPU_HIGHADDR 0xF9020FFF
 #define XPAR_SCUGIC_0_DIST_BASEADDR 0xF9010000
-#endif
+
 
 /******************************************************************/
 
