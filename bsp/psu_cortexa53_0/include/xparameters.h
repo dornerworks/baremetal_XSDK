@@ -1,3 +1,6 @@
+#define QEMU 1
+#define GUEST 1
+
 /* Definition for CPU ID */
 #define XPAR_CPU_ID 0
 
@@ -17,8 +20,14 @@
 
 #include "xparameters_ps.h"
 
-#define STDIN_BASEADDRESS 0xFF000000
-#define STDOUT_BASEADDRESS 0xFF000000
+#if GUEST
+#define STDIN_BASEADDRESS XPAR_PSU_UART_1_BASEADDR
+#define STDOUT_BASEADDRESS XPAR_PSU_UART_1_BASEADDR
+#else
+#define STDIN_BASEADDRESS XPAR_PSU_UART_0_BASEADDR
+#define STDOUT_BASEADDRESS XPAR_PSU_UART_0_BASEADDR
+#endif
+
 
 /******************************************************************/
 
@@ -788,19 +797,30 @@
 
 /* Definitions for peripheral PSU_ACPU_GIC */
 #define XPAR_PSU_ACPU_GIC_DEVICE_ID 0
+
+#if GUEST
+#define XPAR_PSU_ACPU_GIC_BASEADDR      0x03002000                 	// Xen maps the GICC interface to 0x03002000 from 0xF9060000
+#define XPAR_PSU_ACPU_GIC_HIGHADDR      0x03002fff
+#define XPAR_PSU_ACPU_GIC_DIST_BASEADDR 0x03001000                  // Xen maps the GICD interface to 0x03001000 from 0xF9010000
+#else
 #define XPAR_PSU_ACPU_GIC_BASEADDR 0xF9020000
 #define XPAR_PSU_ACPU_GIC_HIGHADDR 0xF9020FFF
 #define XPAR_PSU_ACPU_GIC_DIST_BASEADDR 0xF9010000
-
+#endif
 
 /******************************************************************/
 
 /* Canonical definitions for peripheral PSU_ACPU_GIC */
 #define XPAR_SCUGIC_0_DEVICE_ID 0
+#if GUEST
+#define XPAR_SCUGIC_0_CPU_BASEADDR  0x03002000
+#define XPAR_SCUGIC_0_CPU_HIGHADDR  0x03002fff
+#define XPAR_SCUGIC_0_DIST_BASEADDR 0x03001000
+#else
 #define XPAR_SCUGIC_0_CPU_BASEADDR 0xF9020000
 #define XPAR_SCUGIC_0_CPU_HIGHADDR 0xF9020FFF
 #define XPAR_SCUGIC_0_DIST_BASEADDR 0xF9010000
-
+#endif
 
 /******************************************************************/
 

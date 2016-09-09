@@ -81,7 +81,9 @@ s32 usleep(u32 useconds)
 {
 	XTime tEnd, tCur;
 	/* Start global timer counter, it will only be enabled if it is disabled */
+#if !GUEST
 	XTime_StartTimer();
+#endif
 
 	tCur = mfcp(CNTPCT_EL0);
 	tEnd = tCur + (((XTime) useconds) * COUNTS_PER_USECOND);

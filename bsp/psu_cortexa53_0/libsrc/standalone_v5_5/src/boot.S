@@ -132,8 +132,13 @@ OKToRun:
 
 	/*Set vector table base address*/
 	ldr	x1, =vector_base
+#if ! GUEST
 	msr	VBAR_EL3,x1
+#else
+	msr VBAR_EL1,x1
+#endif
 
+#if !GUEST
 	/* Set reset vector address */
 	/* Get the cpu ID */
 	mrs  x0, MPIDR_EL1
@@ -146,16 +151,21 @@ OKToRun:
 	add	 w2, w2, w0
 	/* store vector base address to RVBAR */
 	str  x1, [x2]
+#endif
 
 	/*Define stack pointer for current exception level*/
+#if !GUEST
 	ldr	 x2,=EL3_stack
+#else
+	ldr	 x2,=EL1_stack
+#endif
 	mov	 sp,x2
 
 
 	/* Disable trapping of CPTR_EL3 accesses or use of Adv.SIMD/FPU*/
+#if !GUEST
 	mov      x0, #0                 // Clear all trap bits
 	msr      CPTR_EL3, x0
-
 
 	/* Configure SCR_EL3 */
 	mov      w1, #0              	//; Initial value of register is unknown
@@ -175,7 +185,6 @@ OKToRun:
 	ldr	x0,=0x80CA000 		// L1 Data prefetch control - 5, Enable device split throttle, 2 independent data prefetch streams
 	msr	S3_1_C15_C2_0, x0 	//CPUACTLR_EL1
 
-
 	/*Enable hardware coherency between cores*/
 	mrs      x0, S3_1_c15_c2_1  	//Read EL1 CPU Extended Control Register
 	orr      x0, x0, #(1 << 6)  	//Set the SMPEN bit
@@ -185,9 +194,12 @@ OKToRun:
 	tlbi 	ALLE3
 	ic      IALLU                  	//; Invalidate I cache to PoU
 	bl 	invalidate_dcaches
+#endif
+
 	dsb	 sy
 	isb
 
+#if !GUEST
 	ldr      x1, =L0Table 		//; Get address of level 0 for TTBR0_EL1
 	msr      TTBR0_EL3, x1		//; Set TTBR0_EL3 (NOTE: There is no TTBR1 at EL1)
 
@@ -213,12 +225,22 @@ OKToRun:
         ldr     x1,=0x80823518
         msr     TCR_EL3, x1
         isb
+#endif
 
 	/* Enable SError Exception for asynchronous abort */
 	mrs 	x1,DAIF
-        bic	x1,x1,#(0x1<<8)
-        msr	DAIF,x1
+    bic	x1,x1,#(0x1<<8)
+    msr	DAIF,x1
 
+
+#if GUEST
+	mrs		x1, SCTLR_EL1
+	orr     x1, x1, #(1 << 12)	//Enable I cache
+	orr      x1, x1, #(1 << 3)	//Enable SP alignment check
+	orr     x1, x1, #(1 << 2)	//Enable caches
+	//MMU already enabled
+	msr		SCTLR_EL1, x1
+#else
 	/* Configure SCTLR_EL3 */
 	mov      x1, #0                //Most of the SCTLR_EL3 bits are unknown at reset
 	orr      x1, x1, #(1 << 12)	//Enable I cache
@@ -226,6 +248,10 @@ OKToRun:
 	orr      x1, x1, #(1 << 2)	//Enable caches
 	orr      x1, x1, #(1 << 0)	//Enable MMU
 	msr      SCTLR_EL3, x1
+#endif
+
+
+
 	dsb	 sy
 	isb
 
