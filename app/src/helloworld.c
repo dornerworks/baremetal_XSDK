@@ -51,7 +51,11 @@
 #include <stdlib.h>
 #include "sleep.h"
 
+/* XZD BareMetal Container function calls are provided the address BMC_FUNC_BASE */
+#define BMC_FUNC_BASE 0xffffffc000090000
+
 #define WITH_MUTEX 1
+#define INIT_MUTEX 1
 
 #if WITH_MUTEX
 extern int _trylock_mutex(void* const resource);
@@ -68,13 +72,40 @@ int main()
 	volatile u64* ptr = (u64*)0x7FFFF000;
 	void* const mutex = (void* const)0x7FFFF010;
 
-	(void)mutex;
+    int (*map_memory)(void* phys, void* virt, u32 size, int mem_type);
+    void (*xen_print)(char* buf);
+    int rv;
+
+    map_memory = ((void**)BMC_FUNC_BASE)[0];
+    xen_print =  ((void**)BMC_FUNC_BASE)[1];
+
+    xen_print("Hello world from the Xen console\r\n");
+
+    rv = map_memory((void*)0xff010000,(void*)0xff010000,4096,0);
+    if(rv)
+        xen_print("err UART\r\n");
+
+    rv = map_memory((void*)0x7FFFF000,(void*)0x7FFFF000,4096,2);
+    if(rv)
+        xen_print("err SHMEM\r\n");
+
+#if WITH_MUTEX
+#if INIT_MUTEX
+#if defined(__LP64__) || defined(_LP64)
+    *((uint64_t*)mutex) = 0;
+#else
+    *((uint32_t*)mutex) = 0;
+#endif /* __LP64__ || _LP64 */
+#endif /* INIT_MUTEX */
+#else
+    (void)mutex;
+#endif /* WITH_MUTEX */
 
     init_platform();
     while(_trylock_mutex(mutex));
 
     id = (u32)*ptr;
-    xil_printf("%d: Hello World\n\r", id);
+    xil_printf("%d: Hello World from UART1\n\r", id);
     (*ptr)++;
     _unlock_mutex(mutex);
 
