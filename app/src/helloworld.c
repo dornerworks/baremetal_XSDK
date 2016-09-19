@@ -54,8 +54,8 @@
 /* XZD BareMetal Container function calls are provided the address BMC_FUNC_BASE */
 #define BMC_FUNC_BASE 0xffffffc000090000
 
-#define WITH_MUTEX 1
-#define INIT_MUTEX 1
+#define WITH_MUTEX 0
+#define INIT_MUTEX 0
 
 #if WITH_MUTEX
 extern int _trylock_mutex(void* const resource);
