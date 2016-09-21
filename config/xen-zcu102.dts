@@ -645,7 +645,7 @@
 				linux,phandle = <0xe>;
 				phandle = <0xe>;
 			};
-			
+
 		};
 
 		gpio@ff0a0000 {
@@ -1307,7 +1307,6 @@
 		};
 
 		serial@ff010000 {
-			#stream-id-cells = <0x1>;
 			compatible = "cdns,uart-r1p12", "xlnx,xuartps";
 			status = "disabled";
 			interrupt-parent = <0x1>;
@@ -1588,11 +1587,14 @@
 			compatible = "mmio-sram";
 			reg = <0x0 0xfffc0000 0x0 0x40000>;
 		};
-
-		shared_mem {
-			#stream-id-cells = <0x1>;
-			compatible = "uio-dev";
-			reg = <0x0 0x7ffff000 0x0 0x1000>; 
+		reserved-memory {
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+			guest_shared: guest@7ffff000{
+				reg = <0 0x7ffff000 0 0x1000>;
+				no-map;
+			};
 		};
 	};
 
@@ -1609,9 +1611,8 @@
 		#address-cells = <0x2>;
 		#size-cells = <0x1>;
 		xen,xen-bootargs = "console=dtuart dtuart=serial0 dom0_mem=512M bootscrub=0 dom0_vcpus_pin maxcpus=3 timer_slop=0";
-		xen,dom0-bootargs = "console=hvc0 earlycon=xen earlyprintk=xen rootdelay=1 root=/dev/mmcblk0p1 devtmpfs.mount=1 dom0_max_vcpus=1 maxcpus=1 uio_pdrv_genirq.of_id=uio-dev";
-
-
+		xen,dom0-bootargs = "console=hvc0 earlycon=xen earlyprintk=xen rootdelay=1 root=/dev/mmcblk0p1 devtmpfs.mount=1 dom0_max_vcpus=1 maxcpus=1";
+	
 		dom0 {
 			compatible = "xen,linux-zimage", "xen,multiboot-module";
 			reg = <0x0 0x80000 0x3100000>;
@@ -1620,6 +1621,6 @@
 
 	memory {
 		device_type = "memory";
-		reg = <0x0 0x0 0x0 0x7ffff000 0x8 0x0 0x0 0x80000000>;
+		reg = <0x0 0x0 0x0 0x80000000 0x8 0x0 0x0 0x80000000>;
 	};
 };
