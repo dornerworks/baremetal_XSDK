@@ -51,8 +51,8 @@
 #include <stdlib.h>
 #include "sleep.h"
 
-/* XZD BareMetal Container function calls are provided the address BMC_FUNC_BASE */
-#define BMC_FUNC_BASE 0xffffffc000090000
+/* XZD BareMetal Container function calls are provided xzd_bmc.h */
+#include "../../xzd_baremetal/xzd_bmc.h"
 
 #define WITH_MUTEX 0
 #define INIT_MUTEX 0
@@ -72,22 +72,17 @@ int main()
 	volatile u64* ptr = (u64*)0x7FFFF000;
 	void* const mutex = (void* const)0x7FFFF010;
 
-    int (*map_memory)(void* phys, void* virt, u32 size, int mem_type);
-    void (*xen_print)(char* buf);
     int rv;
 
-    map_memory = ((void**)BMC_FUNC_BASE)[0];
-    xen_print =  ((void**)BMC_FUNC_BASE)[1];
+    bmc_xen_print("Hello world from the Xen console\r\n");
 
-    xen_print("Hello world from the Xen console\r\n");
-
-    rv = map_memory((void*)0xff010000,(void*)0xff010000,4096,0);
+    rv = bmc_mem_mapper((void*)0xff010000,(void*)0xff010000,4096,0);
     if(rv)
-        xen_print("err UART\r\n");
+        bmc_xen_print("err UART\r\n");
 
-    rv = map_memory((void*)0x7FFFF000,(void*)0x7FFFF000,4096,2);
+    rv = bmc_mem_mapper((void*)0x7FFFF000,(void*)0x7FFFF000,4096,2);
     if(rv)
-        xen_print("err SHMEM\r\n");
+        bmc_xen_print("err SHMEM\r\n");
 
 #if WITH_MUTEX
 #if INIT_MUTEX
