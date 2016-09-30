@@ -52,7 +52,7 @@
 #include "sleep.h"
 
 /* XZD BareMetal Container function calls are provided xzd_bmc.h */
-#include "../../xzd_baremetal/xzd_bmc.h"
+#include "xzd_bmc.h"
 
 #define WITH_MUTEX 0
 #define INIT_MUTEX 0
