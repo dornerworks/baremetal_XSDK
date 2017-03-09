@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2014 - 2015 Xilinx, Inc. All rights reserved.
+* Copyright (C) 2014 - 2016 Xilinx, Inc. All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -34,8 +34,12 @@
 * @file boot.S
 *
 * This file contains the initial startup code for the Cortex A53 processor
-* Currently the processor starts at EL3 and boot code, startup and main
-* code will run on secure EL3.
+* It checks the current exception level and if it matches with selected
+* exception level, then only it initializes the required system registers and
+* executes the code further, otherwise it will loop busy loop around error.
+* If the selected exception level is EL3, execution of the processor has to
+* be in EL3. If the selected exception level is EL1 non-secure, execution of
+* the processor can be EL2 or EL1.
 *
 *
 * <pre>
@@ -43,7 +47,8 @@
 *
 * Ver   Who     Date     Changes
 * ----- ------- -------- ---------------------------------------------------
-* 5.00  pkp	5/21/14 Initial version
+* 5.00  pkp	05/21/14 Initial version
+* 6.00	pkp     07/25/16 Program the counter frequency
 *
 * @note
 *
@@ -52,6 +57,7 @@
 ******************************************************************************/
 
 #include "xparameters.h"
+#include "bspconfig.h"
 
 .globl MMUTableL0
 .globl MMUTableL1
@@ -64,7 +70,6 @@
 .global __el1_stack
 .global __el0_stack
 .global _vector_table
-
 
 .set EL3_stack,		__el3_stack
 .set EL2_stack,		__el2_stack
@@ -79,6 +84,10 @@
 .set L2Table,	MMUTableL2
 .set vector_base,	_vector_table
 .set rvbar_base,	0xFD5C0040
+
+.set counterfreq,	XPAR_CPU_CORTEXA53_0_TIMESTAMP_CLK_FREQ
+.set MODE_EL1, 0x5
+.set DAIF_BIT,	0x1C0
 
 .section .boot,"ax"
 
@@ -122,7 +131,7 @@ _boot:
    //Which core am I
    // ----------------
 	mrs      x0, MPIDR_EL1
-	and      x0, x0, #0xFF                     //Mask off to leave Aff0
+	and      x0, x0, #0xFF                        //Mask off to leave Aff0
 	cbz      x0, OKToRun                          //If core 0, run the primary init code
 EndlessLoop0:
 	wfi
@@ -137,7 +146,7 @@ OKToRun:
 #else
 	msr VBAR_EL1,x1
 #endif
-
+	
 #if !GUEST
 	/* Set reset vector address */
 	/* Get the cpu ID */
@@ -161,7 +170,6 @@ OKToRun:
 #endif
 	mov	 sp,x2
 
-
 	/* Disable trapping of CPTR_EL3 accesses or use of Adv.SIMD/FPU*/
 #if !GUEST
 	mov      x0, #0                 // Clear all trap bits
@@ -180,7 +188,6 @@ OKToRun:
 	mrs	x0, S3_1_C11_C0_2  	// register L2CTLR_EL1
 	orr	x0, x0, #(1<<22)
 	msr	S3_1_C11_C0_2, x0
-
 	/*configure cpu auxiliary control register EL1 */
 	ldr	x0,=0x80CA000 		// L1 Data prefetch control - 5, Enable device split throttle, 2 independent data prefetch streams
 	msr	S3_1_C15_C2_0, x0 	//CPUACTLR_EL1
@@ -196,13 +203,16 @@ OKToRun:
 	bl 	invalidate_dcaches
 #endif
 
+	/* program the counter frequency */
+	ldr	x0,=counterfreq
+	msr	CNTFRQ_EL0, x0
+
 	dsb	 sy
 	isb
 
 #if !GUEST
-	ldr      x1, =L0Table 		//; Get address of level 0 for TTBR0_EL1
-	msr      TTBR0_EL3, x1		//; Set TTBR0_EL3 (NOTE: There is no TTBR1 at EL1)
-
+	ldr      x1, =L0Table 		//; Get address of level 0 for TTBR0_EL3
+	msr      TTBR0_EL3, x1		//; Set TTBR0_EL3
 
 	/**********************************************
 	* Set up memory attributes
@@ -216,22 +226,21 @@ OKToRun:
 	ldr      x1, =0x000000BB0400FF44
 	msr      MAIR_EL3, x1
 
-        /**********************************************
-        * Set up TCR_EL3
-	* Physical Address Size PS =  010 -> 40bits 1TB
-	* Granual Size TG0 = 00 -> 4KB
-        * size offset of the memory region T0SZ = 24 -> (region size 2^(64-24) = 2^40)
-        ***************************************************/
-        ldr     x1,=0x80823518
-        msr     TCR_EL3, x1
-        isb
+	/**********************************************
+	 * Set up TCR_EL3
+	 * Physical Address Size PS =  010 -> 40bits 1TB
+	 * Granual Size TG0 = 00 -> 4KB
+	 * size offset of the memory region T0SZ = 24 -> (region size 2^(64-24) = 2^40)
+	 ***************************************************/
+	ldr     x1,=0x80823518
+	msr     TCR_EL3, x1
+	isb
 #endif
 
 	/* Enable SError Exception for asynchronous abort */
 	mrs 	x1,DAIF
-    bic	x1,x1,#(0x1<<8)
-    msr	DAIF,x1
-
+	bic	x1,x1,#(0x1<<8)
+        msr	DAIF,x1
 
 #if GUEST
 	mrs		x1, SCTLR_EL1
@@ -251,14 +260,12 @@ OKToRun:
 #endif
 
 
-
 	dsb	 sy
 	isb
 
-	bl 	 _startup		//jump to start
+	b 	 _startup		//jump to start
 
 loop:	b	loop
-
 
 invalidate_dcaches:
 

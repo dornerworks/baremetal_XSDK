@@ -1,6 +1,6 @@
 /******************************************************************************
 *
-* Copyright (C) 2014 - 2015 Xilinx, Inc. All rights reserved.
+* Copyright (C) 2014 - 2016 Xilinx, Inc. All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -29,12 +29,11 @@
 * this Software without prior written authorization from Xilinx.
 *
 ******************************************************************************/
-/*****************************************************************************/
-/**
+/*****************************************************************************
 *
-* @file usleep.c
+* @file sleep.c
 *
-* This function provides a microsecond delay using the Global Timer register in
+* This function provides a second delay using the Global Timer register in
 * the ARM Cortex A53 MP core.
 *
 * <pre>
@@ -43,13 +42,14 @@
 * Ver   Who      Date     Changes
 * ----- -------- -------- -----------------------------------------------
 * 5.00 	pkp  	 05/29/14 First release
-* 5.04	pkp		 01/28/16 Modified the usleep API to configure Time Stamp
+* 5.04	pkp		 28/01/16 Modified the sleep API to configure Time Stamp
 *						  generator only when disable using frequency from
 *						  xparamters.h instead of hardcoding
-* 5.05	pkp		 13/04/16 Modified usleep routine to call XTime_StartTimer
+* 5.05	pkp		 13/04/16 Modified sleep routine to call XTime_StartTimer
 *						  which enables timer only when it is disabled and
 *						  read counter value directly from register instead
 *						  of calling XTime_GetTime for optimization
+* 6.0   asa      08/15/16 Updated the sleep/usleep signature. Fix for CR#956899.
 * </pre>
 *
 ******************************************************************************/
@@ -58,11 +58,24 @@
 #include "sleep.h"
 #include "xtime_l.h"
 #include "xparameters.h"
-#include "xpseudo_asm.h"
-#include "xreg_cortexa53.h"
 
 /* Global Timer is always clocked at half of the CPU frequency */
-#define COUNTS_PER_USECOND  (COUNTS_PER_SECOND/1000000 )
+#define COUNTS_PER_USECOND  (COUNTS_PER_SECOND / 1000000 )
+
+static void sleep_common(u32 n, u32 count)
+{
+	XTime tEnd, tCur;
+	/* Start global timer counter, it will only be enabled if it is disabled */
+#if !GUEST
+	XTime_StartTimer();
+#endif
+
+	tCur = mfcp(CNTPCT_EL0);
+	tEnd = tCur + (((XTime) n) * count);
+	do {
+		tCur = mfcp(CNTPCT_EL0);
+	} while (tCur < tEnd);
+}
 
 /*****************************************************************************/
 /**
@@ -77,20 +90,28 @@
 * @note		None.
 *
 ****************************************************************************/
-s32 usleep(u32 useconds)
+int usleep(unsigned long useconds)
 {
-	XTime tEnd, tCur;
-	/* Start global timer counter, it will only be enabled if it is disabled */
-#if !GUEST
-	XTime_StartTimer();
-#endif
+	sleep_common((u32)useconds, COUNTS_PER_USECOND);
 
-	tCur = mfcp(CNTPCT_EL0);
-	tEnd = tCur + (((XTime) useconds) * COUNTS_PER_USECOND);
-	do
-	{
-		tCur = mfcp(CNTPCT_EL0);
-	} while (tCur < tEnd);
+	return 0;
+}
+
+/*****************************************************************************/
+/*
+*
+* This API is used to provide delays in seconds
+*
+* @param	seconds requested
+*
+* @return	0 always
+*
+* @note		None.
+*
+****************************************************************************/
+unsigned sleep(unsigned int seconds)
+{
+	sleep_common(seconds, COUNTS_PER_SECOND);
 
 	return 0;
 }
